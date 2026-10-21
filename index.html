@@ -41,7 +41,6 @@ footer{margin-top:56px;color:var(--muted);font-size:.9rem}
 <body>
 <main>
 <h1>Clinic Queue Desk</h1>
-<p class="lead">A walk-in clinic serves patients in the order they arrive. That rule, first in, first out, is a queue. Try the desk below, then see the C++ program that powers the same logic.</p>
 
 <section class="desk" aria-label="Queue simulator">
   <div class="controls">
@@ -57,9 +56,6 @@ footer{margin-top:56px;color:var(--muted);font-size:.9rem}
   <div class="stats"><span>Waiting: <b id="cnt">0</b> / 8</span><span>front index: <b id="fi">0</b></span><span>rear index: <b id="ri">none</b></span></div>
 </section>
 
-<h2>C++ program</h2>
-<p>This is <code>queue.cpp</code> from the same repository. Compile with <code>g++ queue.cpp -o queue</code> and run it in a terminal.</p>
-<pre id="src">Loading queue.cpp ...</pre>
 
 <footer>Built for a data structures assignment. The written explanation is in the accompanying PDF. The simulator uses the same logic as the C++ class: array, front, count, modulo wrap-around.</footer>
 </main>
@@ -98,7 +94,7 @@ footer{margin-top:56px;color:var(--muted);font-size:.9rem}
   $("add").onclick=enqueue;$("next").onclick=dequeue;$("reset").onclick=init;
   $("name").addEventListener("keydown",function(e){if(e.key==="Enter")enqueue()});
   init();
-  fetch("queue.cpp").then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){$("src").textContent=t}).catch(function(){$("src").textContent="Source loads when this page is served online (GitHub Pages). Locally, open queue.cpp directly."});
+  
 })();
 </script>
 </body>
