@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinic Queue Desk: queues explained</title>
+<style>
+:root{--bg:#e6edf3;--paper:#fbfdff;--ink:#13213a;--muted:#55627a;--blue:#1f4fd8;--gold:#f5b700;--line:#c3cfdd;--code:#101a2e;--codeink:#d8e4ff}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1524;--paper:#16223a;--ink:#e8eefb;--muted:#9aa9c6;--blue:#6f93ff;--gold:#f5b700;--line:#2c3c5c;--code:#0a111f;--codeink:#d8e4ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 Georgia,"Times New Roman",serif}
+main{max-width:980px;margin:0 auto;padding:32px 20px 64px}
+h1{font:800 clamp(2.2rem,6vw,3.6rem)/1.05 "Trebuchet MS",Verdana,sans-serif;margin:0 0 12px;letter-spacing:-.02em}
+h2{font:700 1.5rem "Trebuchet MS",Verdana,sans-serif;margin:48px 0 12px}
+p{max-width:68ch}
+.lead{color:var(--muted);font-size:1.15rem}
+.desk{background:var(--paper);border:2px solid var(--ink);border-radius:6px;padding:22px;margin-top:28px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+input{flex:1 1 200px;font:inherit;padding:10px 12px;border:2px solid var(--ink);border-radius:4px;background:var(--bg);color:var(--ink)}
+button{font:700 1rem "Trebuchet MS",Verdana,sans-serif;padding:10px 16px;border:2px solid var(--ink);border-radius:4px;background:var(--blue);color:#fff;cursor:pointer}
+button.alt{background:var(--gold);color:#13213a}
+button.ghost{background:transparent;color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.serving{display:flex;align-items:baseline;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.serving strong{font:800 1.8rem "Trebuchet MS",Verdana,sans-serif}
+.slots{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
+.slot{position:relative;min-height:96px;border:2px dashed var(--line);border-radius:4px;padding:8px 6px 6px;font-size:.85rem;text-align:center;display:flex;flex-direction:column;justify-content:space-between}
+.slot .idx{color:var(--muted);font-size:.75rem}
+.slot.full{border:2px solid var(--ink);background:var(--gold);color:#13213a;font-weight:700;border-radius:4px 4px 14px 14px}
+.slot .tag{font:700 .72rem "Trebuchet MS",Verdana,sans-serif;min-height:1em}
+.tag.f{color:var(--blue)}.full .tag.f{color:#13213a}
+.legend,.msg{color:var(--muted);font-size:.95rem;margin:14px 0 0}
+.msg{min-height:1.6em;color:var(--ink)}
+.stats{display:flex;gap:22px;flex-wrap:wrap;margin-top:6px;font:600 .95rem "Trebuchet MS",Verdana,sans-serif}
+@media(max-width:640px){.slots{grid-template-columns:repeat(4,1fr)}}
+table{border-collapse:collapse;width:100%;background:var(--paper)}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+th{background:var(--ink);color:var(--bg);font-family:"Trebuchet MS",Verdana,sans-serif}
+.scroll{overflow-x:auto}
+ul{padding-left:20px;max-width:68ch}li{margin:6px 0}
+pre{background:var(--code);color:var(--codeink);padding:18px;border-radius:6px;overflow-x:auto;font:14px/1.5 Consolas,Menlo,monospace;max-height:520px}
+footer{margin-top:56px;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+<h1>Clinic Queue Desk</h1>
+<p class="lead">A walk-in clinic serves patients in the order they arrive. That rule, first in, first out, is a queue. Try the desk below, then read why queues are the right tool.</p>
+
+<section class="desk" aria-label="Queue simulator">
+  <div class="controls">
+    <input id="name" type="text" maxlength="14" placeholder="Patient name" aria-label="Patient name">
+    <button id="add">Take a ticket</button>
+    <button id="next" class="alt">Call next patient</button>
+    <button id="reset" class="ghost">Reset</button>
+  </div>
+  <div class="serving"><span>Now serving:</span><strong id="now">nobody yet</strong></div>
+  <div class="slots" id="slots" aria-live="polite"></div>
+  <p class="legend">The eight boxes are one array. <b>front</b> marks the patient called next, <b>rear</b> marks the last arrival. When rear reaches the end, it wraps to index 0, so freed seats are reused.</p>
+  <p class="msg" id="msg" role="status">Add a patient to begin.</p>
+  <div class="stats"><span>Waiting: <b id="cnt">0</b> / 8</span><span>front index: <b id="fi">0</b></span><span>rear index: <b id="ri">none</b></span></div>
+</section>
+
+<h2>Real-world applications of queues</h2>
+<div class="scroll"><table>
+<tr><th>Application</th><th>What waits in the queue</th><th>Why order matters</th></tr>
+<tr><td>Printer spooler</td><td>Print jobs</td><td>Jobs print in the order they were sent</td></tr>
+<tr><td>Call centres and help desks</td><td>Callers or support tickets</td><td>Fairness: longest-waiting caller is served first</td></tr>
+<tr><td>Operating system CPU scheduling</td><td>Processes ready to run</td><td>Round-robin gives each process a turn</td></tr>
+<tr><td>Web servers</td><td>Incoming requests</td><td>Requests are handled in arrival order during traffic spikes</td></tr>
+<tr><td>Messaging apps and email</td><td>Messages waiting to be sent</td><td>Messages must arrive in the order they were written</td></tr>
+<tr><td>Ticketing and bank counters</td><td>Customers</td><td>First come, first served</td></tr>
+<tr><td>Breadth-first search</td><td>Graph nodes to visit</td><td>Nearest nodes are explored before farther ones</td></tr>
+</table></div>
+
+<h2>Why queues are necessary</h2>
+<ul>
+<li><b>They enforce fairness.</b> No item can be skipped or overtaken; the oldest request always leaves first.</li>
+<li><b>They absorb speed mismatches.</b> A producer (patients arriving, a program sending print jobs) and a consumer (the doctor, the printer) work at different speeds. The queue holds the backlog so nothing is lost.</li>
+<li><b>Both ends are fast.</b> Adding at the rear and removing at the front each take O(1) time. A plain array that shifts items after every removal would take O(n).</li>
+<li><b>They keep order for free.</b> Arrival order is the data. No sorting or timestamps are needed.</li>
+<li><b>They support other algorithms.</b> Breadth-first search, level-order tree traversal, and task schedulers all depend on a queue.</li>
+</ul>
+
+<h2>Chosen application: the clinic queue</h2>
+<p><b>Problem.</b> A clinic has eight waiting-room chairs. Patients take a ticket on arrival and are called in that order. The program must add a patient, call the next one, show who is next, and refuse new patients when the room is full.</p>
+<p><b>Design.</b> A circular queue built on an array. Two values describe it: <code>front</code> (index of the next patient) and <code>count</code> (patients waiting). The rear position is <code>(front + count) % 8</code>. The modulo makes the index wrap, so a removed patient's seat is reused and the array never needs to shift.</p>
+<div class="scroll"><table>
+<tr><th>Operation</th><th>What it does</th><th>Time</th></tr>
+<tr><td>enqueue(name)</td><td>Place patient at rear; fail if full</td><td>O(1)</td></tr>
+<tr><td>dequeue()</td><td>Remove and return the front patient; fail if empty</td><td>O(1)</td></tr>
+<tr><td>peek()</td><td>Read the front patient without removing</td><td>O(1)</td></tr>
+<tr><td>isEmpty / isFull</td><td>Compare count with 0 and with capacity</td><td>O(1)</td></tr>
+</table></div>
+<p><b>Limitation.</b> Capacity is fixed at eight. That is realistic for a waiting room, but a system with unpredictable load would use a linked list or a resizable array.</p>
+
+<h2>C++ program</h2>
+<p>This is <code>queue.cpp</code> from the same repository. Compile with <code>g++ queue.cpp -o queue</code> and run it in a terminal.</p>
+<pre id="src">Loading queue.cpp ...</pre>
+
+<footer>Built for a data structures assignment. The simulator uses the same logic as the C++ class: array, front, count, modulo wrap-around.</footer>
+</main>
+
+<script>
+(function(){
+  var CAP=8, arr, front, count;
+  var $=function(id){return document.getElementById(id)};
+  function init(){arr=new Array(CAP).fill(null);front=0;count=0;say("Add a patient to begin.");$("now").textContent="nobody yet";draw();}
+  function say(t){$("msg").textContent=t}
+  function draw(){
+    var rear=count?(front+count-1)%CAP:-1, h="";
+    for(var i=0;i<CAP;i++){
+      var tags=[];
+      if(count&&i===front)tags.push("front");
+      if(count&&i===rear)tags.push("rear");
+      h+='<div class="slot'+(arr[i]?' full':'')+'"><span class="idx">['+i+']</span><span>'+(arr[i]?esc(arr[i]):'')+'</span><span class="tag f">'+tags.join(" / ")+'</span></div>';
+    }
+    $("slots").innerHTML=h;
+    $("cnt").textContent=count;$("fi").textContent=front;$("ri").textContent=rear<0?"none":rear;
+  }
+  function esc(s){return s.replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function enqueue(){
+    var n=$("name").value.trim();
+    if(!n){say("Type a patient name first.");return;}
+    if(count===CAP){say("Waiting room is full. "+n+" must return later.");return;}
+    var rear=(front+count)%CAP; arr[rear]=n; count++;
+    say(n+" took a ticket and sits at index "+rear+".");
+    $("name").value="";$("name").focus();draw();
+  }
+  function dequeue(){
+    if(!count){say("Nobody is waiting.");return;}
+    var n=arr[front]; arr[front]=null; front=(front+1)%CAP; count--;
+    $("now").textContent=n; say("Called "+n+". front moved to index "+front+".");draw();
+  }
+  $("add").onclick=enqueue;$("next").onclick=dequeue;$("reset").onclick=init;
+  $("name").addEventListener("keydown",function(e){if(e.key==="Enter")enqueue()});
+  init();
+  fetch("queue.cpp").then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){$("src").textContent=t}).catch(function(){$("src").textContent="Source loads when this page is served online (GitHub Pages). Locally, open queue.cpp directly."});
+})();
+</script>
+</body>
+</html>
